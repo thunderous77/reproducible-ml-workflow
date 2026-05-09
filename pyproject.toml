@@ -11,3 +11,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mypkg"]
+
+# version.py is gitignored (CI generates it per-build) — declare it as a
+# build artifact so hatch includes it in the wheel anyway.
+[tool.hatch.build]
+artifacts = ["src/mypkg/version.py"]
