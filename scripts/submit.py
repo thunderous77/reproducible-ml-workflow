@@ -91,6 +91,18 @@ def main() -> int:
         action="store_true",
         help="Skip uploading the config as a release asset (offline / dry run).",
     )
+    ap.add_argument(
+        "--docker",
+        action="store_true",
+        help="Run inside the runtime image instead of a venv. "
+             "Requires docker daemon and a published ghcr.io/<owner>/mypkg-runtime image.",
+    )
+    ap.add_argument(
+        "--image-tag",
+        default="latest",
+        help="Tag of the runtime image to use in --docker mode (default: latest). "
+             "Use a deps-<sha> tag to pin an exact runtime.",
+    )
     args = ap.parse_args()
 
     tag = args.version or latest_release_tag()
@@ -120,6 +132,9 @@ def main() -> int:
         # If set, run.sh will skip the gh-release-download for the config and
         # use this local file instead — used by --no-upload.
         "LOCAL_CONFIG_PATH": local_config_for_run,
+        # Docker mode (off by default).
+        "USE_DOCKER": "1" if args.docker else "",
+        "IMAGE_TAG": args.image_tag,
     }
 
     print(f"running: bash {RUN_SH}", flush=True)

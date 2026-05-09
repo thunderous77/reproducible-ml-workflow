@@ -175,3 +175,58 @@ uv pip install mypkg-0.1.<N>-py3-none-any.whl
 
 Everything between "release exists" and "entry.py runs" is byte-for-byte
 the same contract.
+
+---
+
+## Two channels: code and runtime
+
+Code (the wheel) and runtime (the environment its dependencies run in)
+change at very different rates. Following the Bidder-ML model, this repo
+publishes them on two separate CI channels:
+
+```
+┌─ Code channel — fires on every commit ────────────────────────────┐
+│  .github/workflows/build-wheel.yml                                │
+│  trigger:  push to main                                            │
+│  output:   GitHub Release  v0.1.<count>                            │
+│            Asset           mypkg-0.1.<count>-py3-none-any.whl      │
+│  contents: application code + baked git SHA                        │
+└────────────────────────────────────────────────────────────────────┘
+
+┌─ Runtime channel — fires only when deps change ───────────────────┐
+│  .github/workflows/build-image.yml                                │
+│  trigger:  push to main with paths                                 │
+│              [Dockerfile, pyproject.toml, build-image.yml]         │
+│  output:   ghcr.io/<owner>/mypkg-runtime:latest                    │
+│            ghcr.io/<owner>/mypkg-runtime:deps-<short-sha>          │
+│  contents: Python interpreter + dependencies — no app code         │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Code-only commits skip the image rebuild entirely (saves minutes per
+commit, ~GB per version of disk).
+
+### Run modes
+
+**Default (venv mode):** `~/.cache/mypkg/venvs/<arch>-<os>-py<X.Y>/<version>/`
+holds an installed venv per `(host, version)`. Built once on first cache
+miss, reused after that. No daemon required.
+
+```bash
+python scripts/submit.py --config examples/sample.json
+```
+
+**Opt-in (docker mode):** the runtime image is pulled from GHCR; the
+wheel is `pip install --no-deps`ed into the running container. Stronger
+reproducibility (system libs are version-pinned) at the cost of needing
+a docker daemon.
+
+```bash
+python scripts/submit.py --docker --config examples/sample.json
+
+# Or pin the runtime explicitly:
+python scripts/submit.py --docker --image-tag deps-abc1234 --config examples/sample.json
+```
+
+The same wheel — and therefore the same `git_hash` in the result — is
+used in both modes. They differ only in *where the dependencies live*.
