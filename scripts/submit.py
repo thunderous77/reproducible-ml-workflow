@@ -55,24 +55,24 @@ def upload_config(tag: str, flow_id: str, config_path: pathlib.Path) -> str:
     """Stamp the config with metadata and upload as a release asset.
 
     Returns the asset name (used by the consumer to download it later).
+
+    We write the temp file with the final asset name and upload that path
+    directly. ``gh release upload <path>#<displayName>`` is brittle across
+    versions, so we avoid the rename syntax.
     """
     cfg_blob = json.loads(config_path.read_text())
     cfg_blob["_meta"] = {"flow_id": flow_id, "pkg_version": tag}
     asset_name = f"experiment_{flow_id}.json"
 
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
-        json.dump(cfg_blob, f, indent=2)
-        tmp_path = f.name
-
-    try:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        upload_path = pathlib.Path(tmpdir) / asset_name
+        upload_path.write_text(json.dumps(cfg_blob, indent=2))
         subprocess.check_call([
             "gh", "release", "upload", tag,
-            f"{tmp_path}#{asset_name}",
+            str(upload_path),
             "--repo", GITHUB_REPO,
             "--clobber",
         ])
-    finally:
-        os.unlink(tmp_path)
 
     return asset_name
 
@@ -99,7 +99,7 @@ def main() -> int:
     if not config_path.is_file():
         sys.exit(f"Config not found: {config_path}")
 
-    print(f"flow_id={flow_id} pkg_version={tag} config={config_path}")
+    print(f"flow_id={flow_id} pkg_version={tag} config={config_path}", flush=True)
 
     if args.no_upload:
         # Audit trail is bypassed; entry will still receive the local config.
@@ -122,11 +122,11 @@ def main() -> int:
         "LOCAL_CONFIG_PATH": local_config_for_run,
     }
 
-    print(f"running: bash {RUN_SH}")
+    print(f"running: bash {RUN_SH}", flush=True)
     proc = subprocess.run(["bash", str(RUN_SH)], env=env)
     if proc.returncode != 0:
         sys.exit(proc.returncode)
-    print(f"done. flow_id={flow_id} pkg_version={tag}")
+    print(f"done. flow_id={flow_id} pkg_version={tag}", flush=True)
     return 0
 
 
