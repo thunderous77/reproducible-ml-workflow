@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Bootstrap script — equivalent to `pull_eggs` in the Bidder-ML original.
+# Bootstrap script — pulls the wheel for $PKG_VERSION, prepares a runtime,
+# and runs the entry point. Conceptually equivalent to a K8s pod startup
+# script that fetches an immutable code artifact and execs it.
 #
 # Two modes, controlled by USE_DOCKER:
 #

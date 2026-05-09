@@ -2,10 +2,7 @@
 
 A general-purpose method for making **every experiment run bound to a specific git commit**, so any historical run can be reproduced byte-for-byte regardless of where `HEAD` has moved since.
 
-This is the pattern distilled from:
-- `experiment-versioning-workflow.md` (the design doc — Slurm + GitHub Releases variant)
-- AppLovin/Bidder-ML (the production original — K8s + GCS variant)
-- The local-execution implementation in *this* repo
+This is the pattern distilled from a Slurm + GitHub-Releases design study, a production K8s + GCS implementation that follows the same shape, and the local-execution implementation in *this* repo. The shape is independent of any single deployment.
 
 The goal of this document: give you enough structure that you can port the pattern to any new repo (different scheduler, different storage, different runtime) without re-deriving it from scratch.
 
@@ -147,15 +144,15 @@ When applying this pattern to a new repo, work through these in order:
 
 Examples drawn from real systems. Mix and match by row.
 
-| Component | Bidder-ML (production) | Slurm variant (design doc) | Local variant (this repo) |
+| Component | Production K8s+GCS variant | Slurm variant (design doc) | Local variant (this repo) |
 |---|---|---|---|
-| (A) Version reservation | GCS atomic counter (200001+) | `git rev-list --count HEAD` | `git rev-list --count HEAD` |
+| (A) Version reservation | Object-store atomic counter | `git rev-list --count HEAD` | `git rev-list --count HEAD` |
 | (B) Artifact | Wheel (PYTHONPATH-based) + Docker runtime image | Wheel (pip-installed) | Wheel (pip-installed) |
 | (C) Storage | GCS + private PyPI | GitHub Releases | GitHub Releases |
 | (D) Bootstrap | K8s pod startup `gsutil cp` | `ssh login sbatch -` | `subprocess.run(["bash", "run.sh"])` |
 | Concurrency lock | implicit (k8s image cache) | `flock` | `mkdir`-based |
 | Cache root | image layers | `/scratch/$USER/...` | `~/.cache/{pkg}/...` |
-| (E) Audit places | GCS config + pod label + WandB | Release asset + `--comment` + WandB | Release asset + env vars + WandB |
+| (E) Audit places | object-store config + pod label + WandB | Release asset + `--comment` + WandB | Release asset + env vars + WandB |
 
 ---
 

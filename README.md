@@ -5,10 +5,10 @@ A minimal demo of a **commit-bound, reproducible experiment runner**.
 Every experiment submission is bound to a specific git commit, so any run
 can be reproduced later — even after the working tree has moved on.
 
-This is a **local-execution variant** of the Slurm + GitHub-Releases pattern
-described in [`experiment-versioning-workflow.md`](./experiment-versioning-workflow.md).
-The reproducibility contract is identical; the only swap is that
-`submit.py` invokes `run.sh` as a local subprocess instead of `ssh sbatch`.
+This is a **local-execution variant** of the Slurm + GitHub-Releases
+versioning pattern. The reproducibility contract is identical; the only
+swap is that `submit.py` invokes `run.sh` as a local subprocess instead
+of `ssh sbatch`.
 
 For the general method (and how to port this pattern to a new project),
 see **[BUILDING-REPRODUCIBLE-WORKFLOWS.md](./BUILDING-REPRODUCIBLE-WORKFLOWS.md)**.
@@ -181,8 +181,8 @@ the same contract.
 ## Two channels: code and runtime
 
 Code (the wheel) and runtime (the environment its dependencies run in)
-change at very different rates. Following the Bidder-ML model, this repo
-publishes them on two separate CI channels:
+change at very different rates. This repo publishes them on two separate
+CI channels:
 
 ```
 ┌─ Code channel — fires on every commit ────────────────────────────┐
