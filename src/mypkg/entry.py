@@ -31,17 +31,20 @@ import numpy as np  # noqa: E402
 from sklearn.datasets import load_iris  # noqa: E402
 from sklearn.linear_model import LogisticRegression  # noqa: E402
 from sklearn.model_selection import train_test_split  # noqa: E402
+from sklearn.pipeline import Pipeline  # noqa: E402
+from sklearn.preprocessing import StandardScaler  # noqa: E402
 
 from mypkg.version_utils import build_version, git_branch, git_hash
 
 
-def _coef_hash(model: LogisticRegression) -> str:
+def _coef_hash(pipeline: Pipeline) -> str:
     """SHA256 of the trained model's parameters.
 
     Hashes the bit-pattern of (coefficients || intercepts || classes), so
     any change in trained weights — even a 1-ULP floating-point drift —
     flips the hash.
     """
+    model: LogisticRegression = pipeline.named_steps["clf"]
     h = hashlib.sha256()
     for arr in (model.coef_, model.intercept_, model.classes_):
         h.update(np.ascontiguousarray(arr).tobytes())
@@ -94,16 +97,23 @@ def main() -> int:
         X, y, test_size=test_size, random_state=seed, stratify=y,
     )
 
+    # NEW in this version: standardize features before fitting. Linear
+    # models with L2 regularization are sensitive to feature scale, so
+    # this should produce noticeably different coefficients than the
+    # raw-feature pipeline in earlier versions.
     t0 = time.perf_counter()
-    model = LogisticRegression(
-        C=C, max_iter=max_iter, solver=solver, random_state=seed,
-    )
-    model.fit(X_train, y_train)
+    pipeline = Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", LogisticRegression(
+            C=C, max_iter=max_iter, solver=solver, random_state=seed,
+        )),
+    ])
+    pipeline.fit(X_train, y_train)
     elapsed = time.perf_counter() - t0
 
-    train_acc = float(model.score(X_train, y_train))
-    test_acc = float(model.score(X_test, y_test))
-    coef_hash = _coef_hash(model)
+    train_acc = float(pipeline.score(X_train, y_train))
+    test_acc = float(pipeline.score(X_test, y_test))
+    coef_hash = _coef_hash(pipeline)
 
     print(f"  trained in {elapsed*1000:.1f} ms")
     print(f"  train_accuracy: {train_acc:.6f}")
