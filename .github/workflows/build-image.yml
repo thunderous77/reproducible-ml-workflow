@@ -48,18 +48,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU (for cross-arch builds)
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build & push
+      - name: Build & push (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          # arm64 is emulated via QEMU on the amd64 GH runner — slower but
+          # zero-config. Switch to native arm64 runners later if build time
+          # becomes a bottleneck.
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.tags.outputs.image }}:latest
             ${{ steps.tags.outputs.image }}:${{ steps.tags.outputs.deps_tag }}
-          # Use GHA cache for layer reuse across runs.
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

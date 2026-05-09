@@ -1,9 +1,8 @@
 {
-  "experiment_name": "demo-run",
-  "sleep_seconds": 1.5,
-  "score": 0.815,
-  "hyperparams": {
-    "learning_rate": 0.001,
-    "batch_size": 64
-  }
+  "experiment_name": "iris-logreg-baseline",
+  "seed": 42,
+  "test_size": 0.2,
+  "C": 1.0,
+  "max_iter": 1000,
+  "solver": "liblinear"
 }

@@ -3,7 +3,10 @@ name = "mypkg"
 version = "0.1.0"
 description = "Reproducible ML workflow demo: every run is bound to a specific git commit."
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "numpy==2.1.2",
+    "scikit-learn==1.5.2",
+]
 
 [build-system]
 requires = ["hatchling"]
