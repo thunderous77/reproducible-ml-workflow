@@ -1,4 +1,4 @@
-"""Entry point invoked inside the cached venv.
+"""Entry point invoked inside the cached venv (or docker container).
 
 Plumbing-only stub: reads the experiment config, captures version metadata
 that proves which commit produced this run, simulates a few seconds of
