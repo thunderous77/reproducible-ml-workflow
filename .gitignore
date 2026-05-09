@@ -1,0 +1,26 @@
+# CI bakes this; gitignored so local working tree doesn't drift
+src/mypkg/version.py
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+
+# uv / venv
+.venv/
+.uv-cache/
+
+# Local cache
+.cache/
+.run-cache/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Run outputs
+examples/results_*.json

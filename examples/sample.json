@@ -1,0 +1,9 @@
+{
+  "experiment_name": "demo-run",
+  "sleep_seconds": 1.5,
+  "score": 0.815,
+  "hyperparams": {
+    "learning_rate": 0.001,
+    "batch_size": 64
+  }
+}
