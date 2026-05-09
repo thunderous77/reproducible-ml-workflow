@@ -202,6 +202,17 @@ Cosmetic, but confusing. Add `flush=True` to your submit-side prints — otherwi
 **8. Releases live and die with the repo.**
 GitHub Releases are gone if the repo is deleted. If you care about long-term reproducibility, mirror wheels to a separate bucket (R2, B2, HF Hub) as a CI side-effect. Cost is near-zero; durability dramatically improves.
 
+**9. Single-file bind mounts hang Docker Desktop on Mac.**
+`docker run -v /host/path/file.json:/container/path/file.json` leaves the container stuck in `Created` state on Docker Desktop for Mac (observed on Docker 29.4 / Apple Silicon). Mount the *parent directory* and reference the file inside it instead — directory mounts work fine. This took two minutes of "why is the container hung" before I diffed against a working `docker run`.
+
+**10. CI image build is single-arch by default.**
+`docker/build-push-action@v5` only builds the runner's native arch (amd64) unless you set `platforms:`. M-series Macs pulling that image get `no matching manifest for linux/arm64/v8`. Fix: add `docker/setup-qemu-action@v3` and set `platforms: linux/amd64,linux/arm64`. arm64 will be QEMU-emulated, so build is slower (5–10 min for a heavy image) — acceptable given image rebuilds are rare.
+
+**11. Cross-runtime determinism is a separate problem.**
+Even with `OMP_NUM_THREADS=1`, two runs of the same wheel + same config can produce *different* trained model bytes when run under different BLAS backends — e.g. macOS-native venv (Accelerate/OpenBLAS-mac) vs Linux-in-container (OpenBLAS-linux). Accuracy to 6 decimals will match; raw coefficient bits will not.
+
+This is *not* a workflow bug — it's a numerical-library reality. If you need bit-identical model parity across runtimes, you must pick *one* runtime as authoritative (typically the docker image) and forbid running the workflow outside it for results-of-record. Within a single runtime, the workflow is reproducible.
+
 ---
 
 ## 7. Validating your workflow is actually reproducible

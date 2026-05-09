@@ -152,13 +152,17 @@ else
     WHEEL_BASENAME=$(basename "$WHEEL")
     echo "[run.sh] launching ${PKG_NAME}.entry (docker mode, image=${IMAGE}) ..."
 
-    # Mount layout inside the container:
-    #   /wheels/<wheel>   ← read-only, so pip install --no-deps can find it
-    #   /cfg/config.json  ← read-only, the experiment config
-    #   /out              ← writable, where results land (visible on host)
+    # Mount layout inside the container — directory mounts only.
+    # Single-file bind mounts (-v /path/file:/path/file) are slow/buggy on
+    # Docker Desktop for Mac (containers stuck in "Created" state). Mount
+    # the parent directories instead.
+    #
+    #   /wheels/<wheel>       ← read-only, so pip install --no-deps can find it
+    #   /configs/<flow>.json  ← read-only, the experiment config
+    #   /out                  ← writable, where results land (visible on host)
     docker run --rm \
         -v "$WHEEL_DIR:/wheels:ro" \
-        -v "$CFG:/cfg/config.json:ro" \
+        -v "$CFG_DIR:/configs:ro" \
         -v "$HOST_OUT:/out" \
         -e PKG_VERSION \
         -e FLOW_ID \
@@ -167,6 +171,6 @@ else
         bash -c "
             set -e
             pip install --no-deps --quiet --disable-pip-version-check /wheels/${WHEEL_BASENAME}
-            python -m ${PKG_NAME}.entry --config /cfg/config.json --flow-id ${FLOW_ID} --output-dir /out
+            python -m ${PKG_NAME}.entry --config /configs/${FLOW_ID}.json --flow-id ${FLOW_ID} --output-dir /out
         "
 fi
