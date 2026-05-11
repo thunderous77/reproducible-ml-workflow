@@ -37,6 +37,36 @@ from sklearn.preprocessing import StandardScaler  # noqa: E402
 from mypkg.version_utils import build_version, git_branch, git_hash
 
 
+def _maybe_init_wandb(metadata: dict, cfg: dict):
+    """Initialize a wandb run if wandb is installed AND credentials are set.
+
+    Silent no-op otherwise — the default install of this package has no
+    wandb dependency, so the import will fail; we treat that as "tracking
+    not requested" rather than an error. Install with `pip install
+    mypkg[tracking]` to enable.
+    """
+    if not os.environ.get("WANDB_API_KEY") and os.environ.get("WANDB_MODE") != "offline":
+        return None
+    try:
+        import wandb  # type: ignore
+    except ImportError:
+        print("[entry] WANDB_API_KEY is set but wandb is not installed — "
+              "install with `pip install mypkg[tracking]`. Skipping tracking.")
+        return None
+
+    project = cfg.get("wandb_project", "reproducible-ml-workflow")
+    run = wandb.init(
+        project=project,
+        name=f"run-{metadata['flow_id']}",
+        tags=[
+            f"build_version={metadata['build_version']}",
+            f"git_branch={metadata['git_branch']}",
+        ],
+        config={**cfg, **metadata},
+    )
+    return run
+
+
 def _coef_hash(pipeline: Pipeline) -> str:
     """SHA256 of the trained model's parameters.
 
@@ -84,6 +114,10 @@ def main() -> int:
         print(f"  {k}: {v}")
     print(f"  config: {cfg_path}")
     print("=" * 60)
+
+    wandb_run = _maybe_init_wandb(metadata, cfg)
+    if wandb_run is not None:
+        print(f"[entry] wandb tracking enabled: {wandb_run.url}")
 
     # ---- Train the model ----
     seed = int(cfg.get("seed", 42))
@@ -136,6 +170,22 @@ def main() -> int:
     out_file = out_dir / f"results_{args.flow_id}.json"
     out_file.write_text(json.dumps(result, indent=2))
     print(f"wrote {out_file}")
+
+    if wandb_run is not None:
+        # The three-place audit trail's third place: the experiment tracker.
+        # `git_hash` / `build_version` end up in run.summary so future queries
+        # like "all runs of v0.1.7" land on them directly.
+        wandb_run.summary.update({
+            "git_hash": metadata["git_hash"],
+            "git_branch": metadata["git_branch"],
+            "build_version": metadata["build_version"],
+            "flow_id": metadata["flow_id"],
+            "train_accuracy": train_acc,
+            "test_accuracy": test_acc,
+            "coef_hash": coef_hash,
+            "train_seconds": elapsed,
+        })
+        wandb_run.finish()
     return 0
 
 

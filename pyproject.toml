@@ -8,6 +8,11 @@ dependencies = [
     "scikit-learn==1.5.2",
 ]
 
+# Optional integrations — keep these out of the base wheel to avoid bloating
+# the runtime image. Install with: `pip install mypkg[tracking]`.
+[project.optional-dependencies]
+tracking = ["wandb>=0.16"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

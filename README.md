@@ -230,3 +230,32 @@ python scripts/submit.py --docker --image-tag deps-abc1234 --config examples/sam
 
 The same wheel — and therefore the same `git_hash` in the result — is
 used in both modes. They differ only in *where the dependencies live*.
+
+---
+
+## Optional: WandB tracking
+
+The third place version metadata should land — alongside the release
+asset and the local results JSON — is your experiment tracker. The
+package ships an **opt-in** WandB integration that activates only when
+both of these are true:
+
+1. `wandb` is installed: this is an optional extra, install with
+   `pip install mypkg[tracking]` *or* add `"wandb"` to your runtime
+   image so it's available there.
+2. `WANDB_API_KEY` is set in the environment (or `WANDB_MODE=offline`
+   if you want local-only artifacts).
+
+When active, every run pushes the following to `wandb.run.summary`:
+
+```
+git_hash, git_branch, build_version, flow_id,
+train_accuracy, test_accuracy, coef_hash, train_seconds
+```
+
+This means future queries like *"which runs used wheel v0.1.7?"* or
+*"are there any reproducibility-broken runs (`git_hash == -1`) in this
+project?"* become a single WandB filter.
+
+If you never set `WANDB_API_KEY`, the integration is a silent no-op —
+default behavior of `submit.py` is unchanged.
